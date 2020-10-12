@@ -1,22 +1,22 @@
 # TTGO_TWatch_WordClock
-Wordclock on the lilygo t-watch 2020
+## Wordclock on the lilygo t-watch 2020
 
 This arduino code displays the time in a typical wordclock format using the Liligo T-watch 2020.
 But furthermore I tried to implicate more functions using this typical wordclock style. So it is possible to display the date, setting the time and date, change the color of letters and background, switch between english and german version and setting the power management.
 This arduino code uses the "TTGO_TWatch_Library-master"-library. 
 You will find this library on https://github.com/Xinyuan-LilyGO/TTGO_TWatch_Library. Please follow the instructions for installing this library first.
 
-Requirements
+### Requirements
 
-Hardware
+#### Hardware
 Liliygo® T-Watch 2020 
 
-Software
+#### Software
 Arduino IDE (https://www.arduino.cc/en/Main/Software)
-Libraries
+##### Libraries
 TTGO_TWatch_Library-master  (https://github.com/Xinyuan-LilyGO/TTGO_TWatch_Library)
 
-Installation
+### Installation
 Please install the Arduino IDE first. Follow the instructions on https://www.arduino.cc/en/Main/Software.
 After installing the Arduino IDE you have to install the TTGO T-watch library from https://github.com/Xinyuan-LilyGO/TTGO_TWatch_Library. You will find a good documentation on this side, too. This library comes with a lot of drivers and also with some good examples for the T-watch.
 Connect the T-watch to one of your usb-ports. Please select the port under „tools“ --> „port“. 
@@ -51,34 +51,33 @@ NOTE:
 Sometimes there’s a problem with the upload. Please switch on the watch by pressing the button on the side of the watch for 2 seconds. Try to upload the sketch again.
 After the upload finished you can disconnect the watch from the usb-port. If everything is o.k. the program will start automatically by display a time in a typical wordclock style.
 
-Functions
+### Functions
 Starting from the main screen – the typical wordclock - you can call different functions by wiping on the display:
 Wiping to the left:	One after the other the date, the month and the year are displayed. At the end, the main screen will be displayed again 
 Wiping to the right:	The status of the battery is displayed. After a few seconds the main screen will be displayed again
 Wiping to the bottom: 	The menu is displayed. You can choose the different points of the menu by typing the point on the display. If you don’t type anything the main screen will be displayed after a few seconds
 
-Menu
-Set time
+### Menu
+
+#### Set time
 First of all the actual day will be displayed. By wiping up or down you can increase or decrease the day. When you reached the correct day wipe to the left. The setting for the month appered. Please set the month – and also the year, hour and minute – as same as the day.
 After setting the minute you have to wipe to the left once more.  Date and time is now saved. The main screen will be displayed.
 
-Change color
+#### Change color
 In this menu you can change the color of the matrix and the background color.
 The name of the color of the matrix will be displayed. By wiping down you chnage the background color. By wiping up you will change the color of the matrix. There are 23 different colors fort he matrix and fort he background.
 After setting the colors you have to wipe to the left for saving the colors. The main screen will be displayed.
  
-Power Management
+#### Power Management
 There are three possibilities for the power management. By touching the display you can choose the method. After touching the screen the choosed method will be saved and the main screen will be displayed.
-Switch off completly 
+##### Switch off completly 
 When the main screen is displayed for a few seconds and the display wasn’t touched the watch will be powerd off completly. You can wake up the watch by lifting your wrist or double click. After waking up the watch needs a few seconds before displaying the time. This method requires the least battery power. 
-
-Only switch off the display
+##### Only switch off the display
 When the main screen is displayed for a few seconds and the display wasn’t touched the display of the watch will shut off.  You can wake up the watch by bringing the watch in a position so that you can read the display.  The time will be displayed much faster but this method needs much more battery power.
-
-Don’t switch off the watch
+##### Don’t switch off the watch
 The watch won’t be powerd off – until the battery is empty.
 
-Language
+#### Language
 At the moment there are two languages: english and german. Choose one language by typing the languange on the display. After touching the screen the choosed language will be saved and the main screen will be displayed.
 
 
