@@ -3,7 +3,8 @@ Wordclock on the lilygo t-watch 2020
 
 This arduino code displays the time in a typical wordclock format using the Liligo T-watch 2020.
 But furthermore I tried to implicate more functions using this typical wordclock style. So it is possible to display the date, setting the time and date, change the color of letters and background, switch between english and german version and setting the power management.
-This arduino code uses the "TTGO_TWatch_Library-master"-library. You will find this library on https://github.com/Xinyuan-LilyGO/TTGO_TWatch_Library. Please follow the instructions for installing this library first.
+This arduino code uses the "TTGO_TWatch_Library-master"-library. 
+You will find this library on https://github.com/Xinyuan-LilyGO/TTGO_TWatch_Library. Please follow the instructions for installing this library first.
 
 Requirements
 
