@@ -23,7 +23,7 @@ Connect the T-watch to one of your usb-ports. Please select the port under „to
 For first tries you can load some examples coming up with the library. 
 You will find these examples under „file“  --> “examples“ --> „examples for TTGO-T-watch“ (you have to scroll down in the menu)
 
-** NOTE: **
+**NOTE:**
 If you have a problem with connecting the T-watch via USB, e.g. you can‘t choose the port in the arduino IDE because it is in gray color, please look here for more informations and help. 
 https://github.com/espressif/arduino-esp32/issues/1137 
 Thanks to „beegee-tokyo“!
@@ -48,7 +48,7 @@ Now you can upload the code to the watch.
 By clicking „sketch“ --> upload
 Or by clicking the symbol with the arrow to the right side
 
-** NOTE: **
+**NOTE:**
 Sometimes there’s a problem with the upload. Please switch on the watch by pressing the button on the side of the watch for 2 seconds. Try to upload the sketch again.
 After the upload finished you can disconnect the watch from the usb-port. If everything is o.k. the program will start automatically by display a time in a typical wordclock style.
 
