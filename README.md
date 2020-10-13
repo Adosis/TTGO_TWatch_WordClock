@@ -23,7 +23,7 @@ Connect the T-watch to one of your usb-ports. Please select the port under „to
 For first tries you can load some examples coming up with the library. 
 You will find these examples under „file“  --> “examples“ --> „examples for TTGO-T-watch“ (you have to scroll down in the menu)
 
-NOTE:
+** NOTE: **
 If you have a problem with connecting the T-watch via USB, e.g. you can‘t choose the port in the arduino IDE because it is in gray color, please look here for more informations and help. 
 https://github.com/espressif/arduino-esp32/issues/1137 
 Thanks to „beegee-tokyo“!
@@ -34,11 +34,12 @@ You will find the driver on  http://esp32.net/usb-uart/ and also on https://www.
 After installing the Arduino IDE and the library you can download the wordclock-package. Please download the zip-file end extract it in an own folder. Load the file „t-watch_wordclock_V1_0.ino“ into the arduino IDE.
 By double-click on the file name. Arduino will start automatically and the file will be loaded
 In the Arduino IDE choose“ file“ --> „open“ (or STRG+o) and select the file to open    
-After the file has been loaded you will find 4 tabs at the top oft he Arduino IDE
+After the file has been loaded you will find 4 tabs at the top of the Arduino IDE:
+
 t-watch_wordclock_V1_0:	    the main program of the wordclock
-calcMatrix.c:			    an outsourced part of the program
-FreeSans12ptWordclock.h:	The file with the used font. This font is a variation of the FreeSans12pt7p.h of ardufruit_GFX included in the T-watch-library.
-config.h:	                A file to select the hardware. 
+calcMatrix.c:			          an outsourced part of the program
+FreeSans12ptWordclock.h:	  The file with the used font. This font is a variation of the FreeSans12pt7p.h of ardufruit_GFX included in the T-watch-library.
+config.h:	                  A file to select the hardware. 
                             Please be sure that the line 
                             „#define LILYGO_WATCH_2020_V1    // To use T-Watch2020 , please uncomment this line "
                             is really uncomment. That means, that the two // at the beginning of the line were deleted. 
@@ -47,7 +48,7 @@ Now you can upload the code to the watch.
 By clicking „sketch“ --> upload
 Or by clicking the symbol with the arrow to the right side
 
-NOTE:
+** NOTE: **
 Sometimes there’s a problem with the upload. Please switch on the watch by pressing the button on the side of the watch for 2 seconds. Try to upload the sketch again.
 After the upload finished you can disconnect the watch from the usb-port. If everything is o.k. the program will start automatically by display a time in a typical wordclock style.
 
