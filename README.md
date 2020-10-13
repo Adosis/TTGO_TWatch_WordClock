@@ -45,7 +45,7 @@ config.h:	                  A file to select the hardware.
                             is really uncomment. That means, that the two // at the beginning of the line were deleted. 
 
 Now you can upload the code to the watch.
-By clicking „sketch“ --> upload
+By clicking „sketch“ --> "upload"
 Or by clicking the symbol with the arrow to the right side
 
 **NOTE:**
