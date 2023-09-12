@@ -1,12 +1,12 @@
 
-#include"config.h"
-#include <adafruit_gfx.h>    
+#include "config.h"
+#include <Adafruit_GFX.h>
 
 // "FreeSans12ptWordClock.h" is the filename of the font. This font is a variation of FreeSans12pt7p.h of ardufruit_GFX. Only the capital letters were used and "O'", "Ä", "Ö" and "Ü" were added 
 // This font is a variation of FreeSans12pt7p.h of ardufruit_GFX. Only the capital letters were used and "O'", "Ä", "Ö" and "Ü" were added 
 // Thanks to DenSyo for his Excel fonts editor-converter. You will find it here
 // https://forum.arduino.cc/index.php?topic=447956.msg3082388#msg3082388
-#include"FreeSans12ptWordClock.h"     
+#include "FreeSans12ptWordclock.h"     
 
 #include "calcMatrix.c"               // part of the program which has been outsourced for more clarity
 
