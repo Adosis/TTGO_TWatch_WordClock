@@ -474,7 +474,7 @@ void calcMatrix(int mtx, int valA, int valB)        // Berechnung des Matrix-Arr
       case 4: setLetCol(44,6); break;       
       case 5: setLetCol(50,7); break;       
       case 6: setLetCol(28,5); break;
-      case 7: setLetCol(55,7); break;
+      case 7: setLetCol(55,5); break;
       case 8: setLetCol(66,6); break;
       case 9: setLetCol(17,5); break; 
       case 10: setLetCol(72,5); break;  
