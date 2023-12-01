@@ -1,17 +1,12 @@
-
 #include"config.h"
-#include <adafruit_gfx.h>    
 
 // "FreeSans12ptWordClock.h" is the filename of the font. This font is a variation of FreeSans12pt7p.h of ardufruit_GFX. Only the capital letters were used and "O'", "Ä", "Ö" and "Ü" were added 
 // This font is a variation of FreeSans12pt7p.h of ardufruit_GFX. Only the capital letters were used and "O'", "Ä", "Ö" and "Ü" were added 
 // Thanks to DenSyo for his Excel fonts editor-converter. You will find it here
 // https://forum.arduino.cc/index.php?topic=447956.msg3082388#msg3082388
-#include"FreeSans12ptWordClock.h"     
-
+#include "FreeSans12ptWordclock.h"     
 #include "calcMatrix.c"               // part of the program which has been outsourced for more clarity
-
 #include <EEPROM.h>                   // EEPROM was used to save settings as language, color and power management
-
 
 // for this project I used the TTGO Watch library
 // You will find it on github.com
@@ -30,7 +25,7 @@ int colBackground, setColBackground;      // the colors of background and letter
 
 String formatTime;                                    // you will get date and time of the RTC as a string, this string is used for converting part of the string into integer
 int day, month, year, minute, hour ;                  // the date and time calculated from the string formatTime
-int hourView, minuteView, minuteSave;                 // xxView is calculated for display the time as words, minuteSave is used for calculate the refreshing of the display
+int hourView, minuteView, minuteSave = 60;            // xxView is calculated for display the time as words, minuteSave is used for calculate the refreshing of the display
 int setDay, setMonth, setYear, setMinute, setHour;    // setX is use for setting date and time
 
 int battPerc, battPercView, battLoad;     // percent of battery status; xView ist calculated for display the battery status; battLoad indicates that battery is loading      
@@ -43,66 +38,40 @@ int luX, luY, rdX, rdY;               // were used for asking if a special area 
 int countDisplayTouch;                // used for limiting the time while waiting for touching the display
 
 byte counterToPowOff=1;               // counter for the time to shut off the watch
-
 byte powManagement;                   // the kind of power management (completly shut off, only shut off the display or don't shut off
-
+bool irq = false;
 
 
 void setup()
 {   
   ttgo=TTGOClass::getWatch();         // get watch instance, see also the documentation for the TTGO Watch library
   ttgo->begin();                      // initialize the hardware
-  ttgo->openBL();                   // turn on the backlight                    
- 
+  ttgo->openBL();                     // turn on the backlight                    
+  loadEEPROM();                       // Loading EEPROM-stored settings
+
   ttgo->power->adc1Enable(AXP202_VBUS_VOL_ADC1 | AXP202_VBUS_CUR_ADC1 | AXP202_BATT_CUR_ADC1 | AXP202_BATT_VOL_ADC1, true);  // settings for using the power managemnt of the watch
 
-  // Accel parameter structure
-  Acfg cfg;
-  cfg.odr = BMA4_OUTPUT_DATA_RATE_100HZ;  
-  cfg.range = BMA4_ACCEL_RANGE_2G;  
-  cfg.bandwidth = BMA4_ACCEL_NORMAL_AVG4;
-  cfg.perf_mode = BMA4_CONTINUOUS_MODE;  
-  // Configure the BMA423 accelerometer
-  ttgo->bma->accelConfig(cfg);
-  // Enable BMA423 accelerometer
-  // Warning : Need to use feature, you must first enable the accelerometer  
-  ttgo->bma->enableAccel();
-  // Disable BMA423 isStepCounter feature
-  ttgo->bma->enableFeature(BMA423_STEP_CNTR, false);
-  // Enable BMA423 isTilt feature
-  ttgo->bma->enableFeature(BMA423_TILT, true);
-  // Enable BMA423 isDoubleClick feature
-  ttgo->bma->enableFeature(BMA423_WAKEUP, true);
-  // Reset steps
-  ttgo->bma->resetStepCounter();
-  // Turn off feature interrupt
-  // sensor->enableStepCountInterrupt();
-  ttgo->bma->enableTiltInterrupt();
-  // It corresponds to isDoubleClick interrupt
-  ttgo->bma->enableWakeupInterrupt(); 
-  
-  minuteSave=60;
-  
-  
-  // adresses of the EEPROM and what they are used for
+  pinMode(AXP202_INT, INPUT_PULLUP);
+    attachInterrupt(AXP202_INT, [] {
+        irq = true;
+    }, FALLING);
+    //!Clear IRQ unprocessed  first
+    ttgo->power->enableIRQ(AXP202_PEK_SHORTPRESS_IRQ, true);
+    ttgo->power->clearIRQ();
+  }
+
+// Loading values from the EEPROM
+void loadEEPROM()
+{
+// adresses of the EEPROM and what they are used for
   // 0:  color of letter
   // 1:  color of background
   // 2:  kind of power management (0 = completly shut off; 1 = only shut off the display; 2 = don't shut off the watch)
   // 3:  language (0 = german; 1 = english)  
   
-
   EEPROM.begin(4);
-  
-  setColMatrix = EEPROM.read(0);                  // get the color of the letters out of the EEPROM  
-  setColBackground = EEPROM.read(1);              // get the color of the background out of the EEPROM  
-  if (setColMatrix==setColBackground)             // if the color for letter and background is the same, set different values for background and letter
-  {
-    setColMatrix=1;
-    setColBackground=0;
-  }
-  colMatrix=codeColor(setColMatrix);
-  colBackground=codeColor(setColBackground);
-   
+  colMatrix=codeColor(EEPROM.read(0));            // get the color of the letters out of the EEPROM 
+  colBackground=codeColor(EEPROM.read(1));        // get the color of the background out of the EEPROM
   powManagement = EEPROM.read(2);                 // get the kind of power management out of the EEPORM
   if(powManagement > 2) {powManagement = 2;}
 
@@ -111,61 +80,44 @@ void setup()
   setLangMatrix();                                // load the matrix for the used language
 }
 
-
-
-void lightPowerOff()
 // shut off the display and the backlight
+void lightPowerOff()
 {
-  ttgo->tft->fillScreen (TFT_BLACK);
+  ttgo->tft->fillScreen(TFT_BLACK);
   ttgo->displaySleep();
   ttgo->closeBL();  
- 
 }
 
-
-void waitWatchMoved()
-// waiting for moving the watch in a position so that it can be read, signal for switch on the display
-{
-  Accel acc;
-  look=false;
-  do
-  {          
-    ttgo->bma->getAccel(acc);    
-    if (((acc.x>(-50)) && (acc.x<50)) && ((acc.y>400) && (acc.y<800)) && ((acc.z>(-1000)) && (acc.z<(-700)))) {look=true;}  
-    // these are the coordinates of x-, y- and z-axis of the accelerator indicates the reading position of the watch
-  }
-  while (look==false);        // loop until the right position is reached (look == true)
-  ttgo->displayWakeup();      // ...then wake up the display
-  ttgo->openBL();             // ...and turn on the backlight
-}
-
-
-
-void powerOff()
 // shut off the watch completly
+void powerOff()
 {
-  ttgo->tft->fillScreen (TFT_BLACK);
-  ttgo->displaySleep();
-  ttgo->closeBL();
+  lightPowerOff();
   ttgo->powerOff();
-  // Use ext1 for external wakeup
-  esp_sleep_enable_ext1_wakeup(GPIO_SEL_39, ESP_EXT1_WAKEUP_ANY_HIGH);
+  
+  esp_sleep_enable_ext1_wakeup(GPIO_SEL_35, ESP_EXT1_WAKEUP_ALL_LOW);
   esp_deep_sleep_start();  
 }
 
-
-
-void clearMatrix()
-// clear the matrix, set color of all letters darkgrey (0x10A2) and set the background color
+// waiting for moving the watch in a position so that it can be read, signal for switch on the display
+bool hasWatchMoved()
 {
-  ttgo->tft->fillScreen (colBackground);
+    Accel acc;
+    ttgo->bma->getAccel(acc);    
+    if (((acc.x>(-50)) && (acc.x<50)) && ((acc.y>400) && (acc.y<800)) && ((acc.z>(-1000)) && (acc.z<(-700)))) 
+      return true;
+    else
+      return false;
+ }
+
+// clear the matrix, set color of all letters darkgrey (0x10A2) and set the background color
+void clearMatrix()
+{
+  ttgo->tft->fillScreen(colBackground);
   for (int i=0; i <110; i++) {letterCol[i]=0x10A2;}     
 }
 
-
-
+// the letters of the chosen matrix (mtx) are displayed
 void printMatrix(byte mtx)
-// the letters of the choosed matrix (mtx) were displayed
 {
   ttgo->tft->setTextSize(1);                                          // set the size of the letters
   ttgo->tft->setFreeFont(&FreeSans12ptWordClock);                     // this is the name of the font used in the file (maybe it is different from the file name)
@@ -181,8 +133,6 @@ void printMatrix(byte mtx)
     }  
   }
 }  
-
-
 
 boolean chkMatrixTouch (int firstLet, int numLet)
 // checked if a special position of the display is touched
@@ -201,16 +151,12 @@ boolean chkMatrixTouch (int firstLet, int numLet)
   else return false;
 }
 
-
-int waitDisplayTouch()
 // waiting for touching the display and calculating if display was touched at one position or calculating the direction of wiping the display
+int waitDisplayTouch()
 {
-  xTouch = 0;   // the actual position while touching the display
-  yTouch = 0;
-  xASave = 0;   // xxSave were used for calculation
-  yASave = 0; 
-  xBSave = 0;
-  yBSave = 0;     
+  xTouch = yTouch = 0;   // the actual position while touching the display
+  xASave = yASave = 0;   // xxSave were used for calculation
+  xBSave = yBSave = 0;
   countDisplayTouch =0;   // used as a timer
   // check if display is topuched
   do
@@ -241,12 +187,9 @@ int waitDisplayTouch()
   if (yBSave < yASave-50){return 4;}    // wiping to the upper side
   if (yBSave > yASave+50){return 5;}    // wiping to the bottom side
 }
-  
 
-
-
-void setTimeDate ()
 // setting the date an the time 
+void setTimeDate ()
 {
   formatTime = ttgo->rtc->formatDateTime(PCF_TIMEFORMAT_DD_MM_YYYY);        // the time was requested, the format of this string is DD-MM-YYYY 
   setDay = (formatTime.substring (0,2)).toInt();                            // the strings for day, month and year were converted to integer
@@ -367,75 +310,45 @@ void setTimeDate ()
   delay (2000);
 }
 
-
-
-
 int codeColor(int code)
 // there a 24 different colors
-// for setting the color of letter or the background color you need the rgb555-code
+// for setting the color of letter or the background color you need the rgb565-code
 // a cool website for calculating the rgb565-code is the following one:
 // http://www.barth-dev.de/online/rgb565-color-picker/  
 // thanks to Thomas Barth
 // but most codes were taken from TFT_eSPI.h of the "TTGO_TWatch_Library-master"
 {
-  //0: SCHWARZ / BLACK       
-  //1: MARINEBLAU / NAVY        
-  //2: DUNKELGRÜN / DARKGREEN   
-  //3: DUNKELZYAN / DARKCYAN    
-  //4: KASTANIENBRAUN / MAROON      
-  //5: LILA / PURPLE      
-  //6: OLIV / OLIVE       
-  //7: HELLGRAU / LIGHTGREY   
-  //8: DUNKELGRAU / DARKGREY    
-  //9: BLAU / BLUE        
-  //10: GRÜN / GREEN       
-  //11: ZYAN / CYAN        
-  //12: ROT / RED         
-  //13: MAGENTA / MAGENTA     
-  //14: GELB / YELLOW      
-  //15: WEISS / WHITE       
-  //16: ORANGE / ORANGE      
-  //17: GRÜNGELB / GREENYELLOW 
-  //18: ROSA / PINK        
-  //19: BRAUN / BROWN       
-  //20: GOLD / GOLD        
-  //21: SILBER / SILVER      
-  //22: HIMMELBLAU / SKYBLUE     
-  //23: VIOLETT / VIOLET      
-
   switch (code)
   {
-    case 0: return 0x0000; break;
-    case 1: return 0x000F; break;
-    case 2: return 0x03E0; break;
-    case 3: return 0x03EF; break;
-    case 4: return 0x7800; break;
-    case 5: return 0x780F; break;
-    case 6: return 0x7BE0; break;
-    case 7: return 0xD69A; break;
-    case 8: return 0x7BEF; break;
-    case 9: return 0x001F; break;
-    case 10: return 0x07E0; break;
-    case 11: return 0x07FF; break;
-    case 12: return 0xF800; break;
-    case 13: return 0xF81F; break;
-    case 14: return 0xFFE0; break;
-    case 15: return 0xFFFF; break;
-    case 16: return 0xFDA0; break;
-    case 17: return 0xB7E0; break;
-    case 18: return 0xFE19; break;
-    case 19: return 0x9A60; break;
-    case 20: return 0xFEA0; break;
-    case 21: return 0xC618; break;
-    case 22: return 0x867D; break;
-    case 23: return 0x915C; break;
+    case 0: return 0x0000; break;   //0: SCHWARZ / BLACK
+    case 1: return 0x000F; break;   //1: MARINEBLAU / NAVY
+    case 2: return 0x03E0; break;   //2: DUNKELGRÜN / DARKGREEN
+    case 3: return 0x03EF; break;   //3: DUNKELZYAN / DARKCYAN
+    case 4: return 0x7800; break;   //4: KASTANIENBRAUN / MAROON
+    case 5: return 0x780F; break;   //5: LILA / PURPLE
+    case 6: return 0x7BE0; break;   //6: OLIV / OLIVE
+    case 7: return 0xD69A; break;   //7: HELLGRAU / LIGHTGREY
+    case 8: return 0x7BEF; break;   //8: DUNKELGRAU / DARKGREY
+    case 9: return 0x001F; break;   //9: BLAU / BLUE
+    case 10: return 0x07E0; break;  //10: GRÜN / GREEN
+    case 11: return 0x07FF; break;  //11: ZYAN / CYAN
+    case 12: return 0xF800; break;  //12: ROT / RED
+    case 13: return 0xF81F; break;  //13: MAGENTA / MAGENTA
+    case 14: return 0xFFE0; break;  //14: GELB / YELLOW
+    case 15: return 0xFFFF; break;  //15: WEISS / WHITE
+    case 16: return 0xFDA0; break;  //16: ORANGE / ORANGE
+    case 17: return 0xB7E0; break;  //17: GRÜNGELB / GREENYELLOW
+    case 18: return 0xFE19; break;  //18: ROSA / PINK
+    case 19: return 0x9A60; break;  //19: BRAUN / BROWN
+    case 20: return 0xFEA0; break;  //20: GOLD / GOLD
+    case 21: return 0xC618; break;  //21: SILBER / SILVER
+    case 22: return 0x867D; break;  //22: HIMMELBLAU / SKYBLUE
+    case 23: return 0x915C; break;  //23: VIOLETT / VIOLET
   }
 }
 
-
-
-void setColor()
 // setting the color for the letters and for the background
+void setColor()
 {  
   clearMatrix();
   calcMatrix(8,setColMatrix,0);
@@ -443,46 +356,31 @@ void setColor()
   do
   {
     touch=waitDisplayTouch();  
-    switch (touch)    
+    if(touch==4 || touch==5)                   // if it was wiped to the top or wiped to the bottom...
     {
-      case 4:   // wiping to the top changes the color of the letters
-      {
-        setColMatrix=setColMatrix+1;
-        if (setColMatrix>23) {setColMatrix=0;} 
-        break;       
-      }
-      case 5:   // wiping to the bottom changes the color of the background
-      {
-        setColBackground=setColBackground+1; 
-        if (setColBackground>23) {setColBackground=0;} 
-        break;
-      }
-    }
-    if ((touch==4) || (touch==5))                   // if it was wiped to the top or wiped to the bottom...
-    {    
+      if(touch == 4)
+      setColMatrix= ++setColMatrix % 24;            // Try next foreground color
+
+      if(touch == 5)
+      setColBackground= ++setColBackground % 24;    // Try next background color
+        
       colMatrix=codeColor(setColMatrix);            // the matrix was displayed using the new colors and displayd the name of the letter color
       colBackground=codeColor(setColBackground);      
       clearMatrix();
       calcMatrix (8,setColMatrix,0);
       printMatrix(8);   
     }
-  }  
-  while (touch!=2);                                 // when wiped to the left settings were saved
+  }  while (touch!=2);                                 // when wiped to the left settings were saved
   clearMatrix();
   calcMatrix (8,24,0);
   printMatrix(8);   
   EEPROM.write(0, setColMatrix);                    // color for the letters and for the background will be saved in EEProm so the informations can be read after shutting off the watch
-  EEPROM.commit();
-  delay(50);
   EEPROM.write(1,setColBackground);
   EEPROM.commit();
   delay(1500);
 }
 
-
-
 void setPowerMangemant()
-// setting the püower management
 {  
   clearMatrix();      
   calcMatrix(9,powManagement,1);        // display the matrix for seeting the power management, 1 means that all choosable possibilities were displayed
@@ -559,15 +457,13 @@ void setLangMatrix()
     matrix[6]="HOURSWAMOPMONEASDFTENGTWOVCELEVENTHREELKMNHGFOURXTWELVEFIVEJHGFSIXUZFVNISEVENEIGHTWSCFTZWENINETDGZHVCDSE@CLOCK";
     matrix[7]="MINASTWENTYTHIRTYFORTYFIFTYJHZEROONETWOTHREEFOURFIVESIXSEVENEIGHTWNINETENTDGZELEVENUZFVNTWELVESAVEDTHIRTEENDSE";
     matrix[8]="BLACKNAVYBMREDARKGREENCYANMAROONXPURPLEOLIVEVIOLETDGREYSILVERSKYWTMAGENTAGOLDYELLOWHITEZORANGEBROWNBLUEPINKSET";
-    matrix[9]="SWITCHSOFDCCOMPLETLYVEXDRTGEGHNBVSWITCHXOFFRSCREENAONLYGEKQVNBGEKTSETTINGGUJSDONTMSWITCHOFFRAMSZFVNSAVEDJHGFDY";
+    matrix[9]="SWITCHSOFFCCOMPLETLYVEXDRTGEGHNBVSWITCHXOFFRSCREENAONLYGEKQVNBGEKTSETTINGGUJSDONTMSWITCHOFFRAMSZFVNSAVEDJHGFDY";
     matrix[10]="ERTNBGEKAMSENGLISCHIGZENGLISHWERTTFGCVBNGUJSGESPEICHERTSAVEDHERTJSXDRTGEGHNBVDEUTSCHTNBGGERMANTZIUDAEZBNMASDFG";  
   }
 }
 
-
-
-void setLanguage()
 // setting the language (0 = germnan, 1= english)
+void setLanguage()
 {  
   clearMatrix();
   calcMatrix(99,language,1);    //display the matrix for seeting the language, 1 means that all choosable possibilities were displayed
@@ -575,13 +471,10 @@ void setLanguage()
   if (waitDisplayTouch()==1)
   {     
     if ((chkMatrixTouch (11, 11) == true) || (chkMatrixTouch (22, 11) == true))  // check if "englisch" was pressed  
-    {
       language=1;           
-    }
+
     if ((chkMatrixTouch (77, 11) == true) || (chkMatrixTouch (88, 11) == true))  // check if "german" was pressed
-    {
       language=0;        
-    }
     
     setLangMatrix();              // load the matrix for the choosen language
     clearMatrix();                
@@ -597,10 +490,8 @@ void setLanguage()
   }
 }
 
-
-
-void printDate()
 // displays the actual date
+void printDate()
 {
   formatTime = ttgo->rtc->formatDateTime(PCF_TIMEFORMAT_DD_MM_YYYY);        // the time was requested, the format of this string is DD-MM-YYYY 
   day = (formatTime.substring (0,2)).toInt();                               // the strings for day, month and year were converted to integer
@@ -610,22 +501,19 @@ void printDate()
   clearMatrix();
   calcMatrix(3,day,1);
   printMatrix(3);
-  delay(1500);
+  delay(1333);
   clearMatrix();
   calcMatrix(4,month,0);
   printMatrix(4);
-  delay(1500);
+  delay(3333-(month*100));
   clearMatrix();
   calcMatrix(5,year,0);
   printMatrix(5);
-  delay(1500);  
+  delay(3650-(day*month*7));  
 }
 
-
-
-
-void printTime()
 // the typical wordclock will be displayed
+void printTime()
 {
     formatTime = ttgo->rtc->formatDateTime(PCF_TIMEFORMAT_HMS);      // the time was requested, the format of this string ist HH:MM:SS
     hour = (formatTime.substring (0,2)).toInt();                     // the strings for the hour and for the minute were converted to Integer
@@ -665,33 +553,19 @@ void printTime()
     printMatrix(0);
 }
 
-
-
-
-void printBattery()
 // display the status of the battery
+void printBattery()
 {
-  battLoad=0;
-  if (ttgo->power->isVBUSPlug())                // check if battery is charging    
-  {
-    battLoad=1;    
-  }     
   battPerc=ttgo->power->getBattPercentage();    // get the status of the battery
   battPercView=((battPerc+5)/10);               // there are 10 different states to display the percentage of battery charge
-  Serial.print(battPerc);
-  Serial.print(battPercView); 
   clearMatrix();
-  calcMatrix(1,battPercView,battLoad);          // display the battery charge 
+  calcMatrix(1,battPercView,ttgo->power->isVBUSPlug()?1:0);          // display the battery charge 
   printMatrix(1);
   delay(2500);
 }
 
-
-
-
-
-void menu()
 // displays the menu 
+void menu()
 {
   clearMatrix();
   calcMatrix(2,0,1);          //display the matrix for the menu, 1 means all choosable possibilities were displayed
@@ -733,11 +607,8 @@ void menu()
   }       
 }
 
-
-
 void loop()
 {
-  // Anzeigen der Uhrzeit  
   formatTime = ttgo->rtc->formatDateTime(PCF_TIMEFORMAT_HMS); 
   if ((((formatTime.substring (3,5)).toInt()) != minuteSave ) || (counterToPowOff == 1))   // if time changed ("minute" is not "minuteSave" or void loop() was just started (counterToPowOff == 1)
   {
@@ -750,27 +621,25 @@ void loop()
     counterToPowOff=0;
     switch(touch)
     {
-      case 1: printTime(); break;                   // no display touch     --> wordclock was displayed
-      case 2: printDate(); break;                   // wiping to the left   --> date was displayed
-      case 3: printBattery(); break;                // wiping to the right  --> battery status was displaye
-      case 4: break;                                // wiping to the top    --> not used at the moment
-      case 5: menu(); break;                        // wiping to the bottom --> call menu
+      case 1: printTime(); break;                         // no display touch     --> wordclock was displayed
+      case 2: printDate(); break;                         // wiping to the left   --> date was displayed
+      case 3: printBattery(); break;                      // wiping to the right  --> battery status was displaye
+      case 4: break;                                      // wiping to the top    --> not used at the moment / sync time?
+      case 5: menu(); break;                              // wiping to the bottom --> call menu
     }        
   }    
-  counterToPowOff=counterToPowOff+1;                // if there is no display touch the timer for shut off the watch is increased
-  if (counterToPowOff > 5)                          // if the timer for shut off the watch is higher then 5 the watch will be shut off - if choosen
-  {
-    Serial.print ("PowerManagement: ");
-    Serial.println (powManagement);
-    switch (powManagement)
-    {
-      case 0: powerOff(); break;    // switch off the watch completly
-      case 1: 
-      {
-        lightPowerOff();            // switch off only the display
-        waitWatchMoved();           // and wait for a movement of the watch in a position so that it can be read, this is the signal for switch on the display
-        counterToPowOff=1;          // this means, that the wordclock will be displayed, wenn loop() will be started again
-      }  
-    }
+
+ if (irq) { // Poweroff on button press
+        irq = false;
+        ttgo->power->readIRQ();
+        if (ttgo->power->isPEKShortPressIRQ()) {
+           ttgo->power->clearIRQ();
+           counterToPowOff = 7;
+        }
+  ttgo->power->clearIRQ();
   }
+  
+  if (++counterToPowOff > 5)                          // if the timer for shut off the watch is higher then 5 the watch will be shut off - if choosen
+    powerOff(); 
+   
 }

@@ -686,7 +686,7 @@ void calcMatrix(int mtx, int valA, int valB)        // Berechnung des Matrix-Arr
   {    
     if (valB==1)
     {
-      setLetCol(0,6); setLetCol(7,2); setLetCol(11,9); 
+      setLetCol(0,6); setLetCol(7,3); setLetCol(11,9); 
       setLetCol(33,6); setLetCol(40,3); setLetCol(44,6); setLetCol(51,4);
       setLetCol(77,4); setLetCol(82,6); setLetCol(88,3);
     }
