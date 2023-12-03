@@ -1,0 +1,5 @@
+{
+    "port": "/dev/ttyACM0",
+    "board": "espressif:esp32:twatch",
+    "sketch": "t-watch_wordclock_V1_0.ino"
+}

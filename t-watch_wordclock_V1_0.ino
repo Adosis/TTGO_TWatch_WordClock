@@ -1,24 +1,13 @@
 #include"config.h"
-
-// "FreeSans12ptWordClock.h" is the filename of the font. This font is a variation of FreeSans12pt7p.h of ardufruit_GFX. Only the capital letters were used and "O'", "Ä", "Ö" and "Ü" were added 
-// This font is a variation of FreeSans12pt7p.h of ardufruit_GFX. Only the capital letters were used and "O'", "Ä", "Ö" and "Ü" were added 
-// Thanks to DenSyo for his Excel fonts editor-converter. You will find it here
-// https://forum.arduino.cc/index.php?topic=447956.msg3082388#msg3082388
-#include "FreeSans12ptWordclock.h"     
 #include "calcMatrix.c"               // part of the program which has been outsourced for more clarity
 #include <EEPROM.h>                   // EEPROM was used to save settings as language, color and power management
 
-// for this project I used the TTGO Watch library
-// You will find it on github.com
-// https://github.com/Xinyuan-LilyGO/TTGO_TWatch_Library
-// used parts of the "TTGO_TWatch_Library-master"
 TTGOClass*ttgo;                      
 TFT_eSPI *tft;
 AXP20X_Class *power;
 BMA *sensor;
 
 String matrix[11];    // the array of the differnt matrixes used for the different functions of the clock
-
 char chrMatrix[111];                      // the array of the letters of the actuel used matrix
 char letterAct;                           // the actual letter while printing the Matrix
 int colBackground, setColBackground;      // the colors of background and letters
@@ -67,17 +56,14 @@ void loadEEPROM()
   // 0:  color of letter
   // 1:  color of background
   // 2:  kind of power management (0 = completly shut off; 1 = only shut off the display; 2 = don't shut off the watch)
-  // 3:  language (0 = german; 1 = english)  
   
   EEPROM.begin(4);
-  colMatrix=codeColor(EEPROM.read(0));            // get the color of the letters out of the EEPROM 
-  colBackground=codeColor(EEPROM.read(1));        // get the color of the background out of the EEPROM
-  powManagement = EEPROM.read(2);                 // get the kind of power management out of the EEPORM
-  if(powManagement > 2) {powManagement = 2;}
-
-  language = EEPROM.read(3);                      // get the used language out of the EEPORM
-  if (language > 1) {language = 1;}               // if the value of the EEprom is larger than 1, language is 1 (english)
-  setLangMatrix();                                // load the matrix for the used language
+  setColMatrix = EEPROM.read(0)%24;
+  colMatrix = codeColor(setColMatrix);            // get the color of the letters out of the EEPROM 
+  setColBackground = EEPROM.read(1)%24;
+  colBackground = codeColor(setColBackground);    // get the color of the background out of the EEPROM
+  powManagement = EEPROM.read(2)%3;               // get the kind of power management out of the EEPORM
+  loadMatrix();                                // load the matrix for the used language
 }
 
 // shut off the display and the backlight
@@ -120,7 +106,7 @@ void clearMatrix()
 void printMatrix(byte mtx)
 {
   ttgo->tft->setTextSize(1);                                          // set the size of the letters
-  ttgo->tft->setFreeFont(&FreeSans12ptWordClock);                     // this is the name of the font used in the file (maybe it is different from the file name)
+  ttgo->tft->setFreeFont(&FreeSans12pt7b);                     // this is the name of the font used in the file (maybe it is different from the file name)
   for (int letterRow=0; letterRow <=10; letterRow =letterRow+1)       // counter for the rows of the wordclock
   {
      for (int letterCount=0; letterCount <=10; letterCount =letterCount+1)            // counter for the letter in the row
@@ -359,22 +345,22 @@ void setColor()
     if(touch==4 || touch==5)                   // if it was wiped to the top or wiped to the bottom...
     {
       if(touch == 4)
-      setColMatrix= ++setColMatrix % 24;            // Try next foreground color
+      setColMatrix = ++setColMatrix % 24;            // Try next foreground color
 
       if(touch == 5)
-      setColBackground= ++setColBackground % 24;    // Try next background color
+      setColBackground = ++setColBackground % 24;    // Try next background color
         
-      colMatrix=codeColor(setColMatrix);            // the matrix was displayed using the new colors and displayd the name of the letter color
-      colBackground=codeColor(setColBackground);      
+      colMatrix = codeColor(setColMatrix);            // the matrix was displayed using the new colors and displayd the name of the letter color
+      colBackground = codeColor(setColBackground);      
       clearMatrix();
-      calcMatrix (8,setColMatrix,0);
+      calcMatrix(8,setColMatrix,0);
       printMatrix(8);   
     }
   }  while (touch!=2);                                 // when wiped to the left settings were saved
   clearMatrix();
   calcMatrix (8,24,0);
   printMatrix(8);   
-  EEPROM.write(0, setColMatrix);                    // color for the letters and for the background will be saved in EEProm so the informations can be read after shutting off the watch
+  EEPROM.write(0,setColMatrix);                    // color for the letters and for the background will be saved in EEProm so the informations can be read after shutting off the watch
   EEPROM.write(1,setColBackground);
   EEPROM.commit();
   delay(1500);
@@ -414,40 +400,8 @@ void setPowerMangemant()
   }
 }
 
-void setLangMatrix()
-// different matrixes for different languages
-
-// "="="Ä"; ">"="Ö"; "?"="Ü"; "@" ="O'"
-// Matrix 0 for the time (the typical wordclock)
-// Matrix 1 for the battery status
-// Matrix 2 for the menu
-// Matrix 3 for setting the date (day)
-// Matrix 4 for setting the date (month)
-// Matrix 5 for setting the date (year)
-// Matrix 6 for setting the time (hour)
-// Matrix 7 for setting the time (minute);
-// Matrix 8 for setting the colors
-// Matrix 9 for setting the power management
-// Matrix 10 for setting the language
-
+void loadMatrix() 
 {
-  if (language == 0)    // the german matrixes
-  {    
-    matrix[0]="ESKISTAF?NFZEHNZWANZIGDOEIVIERTELVORFUNKNACHHALBAELF?NFEINSXAMZWEIDREIPMJVIERSECHSNLACHTSIEBENZW>LFZEHNEUNKUHR";
-    matrix[1]="DIEQWERTZIUGHJBATTERIEISTNMEHRHJKWENIGERPALSEINFFASTGVBDREIVIERTELHALBAMSVOLLLEERRIGZUNDLKNBGEKWIRDGELADENZVBM";
-    matrix[2]="UHRZEITWRZUSTELLENPKGVAEZBNMASDFGXDRTGFARBENZBMANPASSENTFGCVBNGUJSPOWERTDGZHJMANAGEMENTLJHGFDSARZUILKVDSPRACHE";
-    matrix[3]="ESGISTGDERVVIERSECHSRAZWEIDRITZIOF?NFSIEBENXZW>LFELFLKMEINZWEIDREIACHTNEUNDSANEUNZEHNTERDREISSVCUNDZWANZIGSTER";
-    matrix[4]="MONATEGHNBVJANUARRUIKFAFEBRUARRCBM=RZUOAPRILMAISDHNJUNIJULIFAUGUSTSEPTEMBERWEGHKLOKTOBERNOVEMBERWDVDEZEMBERKFC";
-    matrix[5]="JAHREGHNBVAZWANZIGACHTEINZWEIDREIVIERF?NFRCBSECHSIEBENUNEUNRGIKFUOTFGCVBNGUJSJHGFDSARZUIUNDXZWANZIGDREISSIGWDV";
-    matrix[6]="STUNDENULLMVIERSECHSRAZWEIDREIZIOF?NFSIEBENXZW>LFELFLKMEINZWEIDREIACHTNEUNDSANEUNZEHNTERDREISSVCUNDZWANZIGSUHR";
-    matrix[7]="SICHEREVIEREINSECHSELFZWEIDREIUHRF?NFSIEBENWZW>LFACHTRANEUNZEHNUNDZWANZIGLKMVDREISSIGDSAVIERZIGZEITF?NFZIGNULL";
-    matrix[8]="SCHWARZLILAGOLDUNKELMSHELLGRAUROTROSASILBERUZYANBRAUNVBOLIVIOLETTGMARINEBLAUVORANGEGR?NLMAGENTAGELBWEISSICHERT";
-    matrix[9]="VOLLST=NDIGABSCHALTENFERTNBGEKAMSNURVDISPLAYABSCHALTENTFTGCVBNGUJSEINSTELLUNGNICHTRIGZATABSCHALTENQGESICHERTER";
-    matrix[10]="ERTNBGEKAMSENGLISCHIGZENGLISHWERTTFGCVBNGUJSGESPEICHERTSAVEDHERTJSXDRTGEGHNBVDEUTSCHTNBGGERMANTZIUDAEZBNMASDFG";    
-  }
-  
-  if (language == 1)    // the english matrixes
-  {    
     matrix[0]="ITLISASAMPMACQUARTERDCTWENTYFIVEXHALFSTENFTOPASTERUNINEONESIXTHREEFOURFIVETWOEIGHTELEVENSEVENTWELVETENSE@CLOCK";
     matrix[1]="THEQWERTZIUGHJBATTERYHISXNMOREHJKLESSMTHANLAALMOSTHREEMQUARTERSGZHHALFAMSFULLEMPTYIGZGFDLKNBGEKQISPCHARGINGVBM";
     matrix[2]="SETFGCVBRZUTIMEARZPKGVAEZBNMASDFGZBMDHCHANGEJHGFDYCOLORTFGCVBNGUJSPOWERTDGZHJMANAGEMENTLXDRTGEGHNBVLKVLANGUAGE";
@@ -459,36 +413,8 @@ void setLangMatrix()
     matrix[8]="BLACKNAVYBMREDARKGREENCYANMAROONXPURPLEOLIVEVIOLETDGREYSILVERSKYWTMAGENTAGOLDYELLOWHITEZORANGEBROWNBLUEPINKSET";
     matrix[9]="SWITCHSOFFCCOMPLETLYVEXDRTGEGHNBVSWITCHXOFFRSCREENAONLYGEKQVNBGEKTSETTINGGUJSDONTMSWITCHOFFRAMSZFVNSAVEDJHGFDY";
     matrix[10]="ERTNBGEKAMSENGLISCHIGZENGLISHWERTTFGCVBNGUJSGESPEICHERTSAVEDHERTJSXDRTGEGHNBVDEUTSCHTNBGGERMANTZIUDAEZBNMASDFG";  
-  }
 }
 
-// setting the language (0 = germnan, 1= english)
-void setLanguage()
-{  
-  clearMatrix();
-  calcMatrix(99,language,1);    //display the matrix for seeting the language, 1 means that all choosable possibilities were displayed
-  printMatrix(10);
-  if (waitDisplayTouch()==1)
-  {     
-    if ((chkMatrixTouch (11, 11) == true) || (chkMatrixTouch (22, 11) == true))  // check if "englisch" was pressed  
-      language=1;           
-
-    if ((chkMatrixTouch (77, 11) == true) || (chkMatrixTouch (88, 11) == true))  // check if "german" was pressed
-      language=0;        
-    
-    setLangMatrix();              // load the matrix for the choosen language
-    clearMatrix();                
-    calcMatrix(99,language,0);    // display the matrix for seeting the language and display the choosen language
-    printMatrix(10);
-    EEPROM.write(3, language);
-    EEPROM.commit();
-    delay(1500);
-    clearMatrix();
-    calcMatrix(99,2,0);           // display that the settings were saved
-    printMatrix(10);  
-    delay(1500);
-  }
-}
 
 // displays the actual date
 void printDate()
@@ -536,16 +462,10 @@ void printTime()
     minuteView = ((minute+2)/5);              // calculate the different states for displying the minutes
     // calculate the matrix for hours
     if (hour==0) {hour=12;}             
-    if (language==0)                          // for the german version                 
-    {
-      if (minute>22) {hourView=hour+1;}       // for example: time is 2:19 --> "es ist zwanzig nach ZWEI"; 2:25 --> "es ist fünf vor halb DREI" 
-      else {hourView=hour;} 
-    }     
-    if (language==1)                          // for the english     
-    {
+
       if (minute>32) {hourView=hour+1;}       // for example: time is 2:29 --> "it is half past TWO"; 2:35 --> "it is twentyfive to THREE" 
       else {hourView=hour;}
-    }     
+ 
     
     if (hourView>12) {hourView=hourView-12;}  // Conversion of hours from 24-hour to 12-hour display      
     clearMatrix();
@@ -596,14 +516,6 @@ void menu()
       delay (1000);
       setPowerMangemant();
     }
-    if (chkMatrixTouch (99, 11) == true)  //Prüfen, ob "Sprache" gedrückt wurde
-    {
-      clearMatrix();
-      calcMatrix(2,4,0);       //display "language"
-      printMatrix(2);
-      delay (1000);
-      setLanguage();
-    }
   }       
 }
 
@@ -632,11 +544,10 @@ void loop()
  if (irq) { // Poweroff on button press
         irq = false;
         ttgo->power->readIRQ();
+        ttgo->power->clearIRQ();
         if (ttgo->power->isPEKShortPressIRQ()) {
            ttgo->power->clearIRQ();
            counterToPowOff = 7;
-        }
-  ttgo->power->clearIRQ();
   }
   
   if (++counterToPowOff > 5)                          // if the timer for shut off the watch is higher then 5 the watch will be shut off - if choosen
